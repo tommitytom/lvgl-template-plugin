@@ -18,8 +18,7 @@ add_subdirectory(deps/dpf)
 # Use LVGL from lv_binding_js (single source of truth)
 add_subdirectory(deps/lv_binding_js/deps/lvgl)
 
-# --- txiki.js (QuickJS + libuv + curl + ffi runtime) ---
-set(USE_EXTERNAL_FFI ON CACHE BOOL "" FORCE)
+# --- txiki.js (QuickJS + libuv + libwebsockets + ffi runtime) ---
 set(BUILD_WITH_MIMALLOC OFF CACHE BOOL "" FORCE)
 add_subdirectory(deps/lv_binding_js/deps/txiki EXCLUDE_FROM_ALL)
 
@@ -104,8 +103,14 @@ set_target_properties(lvgl PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(tjs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(qjs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(m3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(sqlite3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(vmlib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(websockets PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(mbedtls PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(mbedx509 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(mbedcrypto PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(ada PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(miniz PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # create plugin build target
 dpf_add_plugin(${NAME}

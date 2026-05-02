@@ -50,7 +50,7 @@ bool LvglJsEngine::init() {
 
     // Set up the lvgljs global symbol and register native LVGL components
     JSValue global_obj = JS_GetGlobalObject(ctx);
-    JSValue render_sym = JS_NewSymbol(ctx, "lvgljs", TRUE);
+    JSValue render_sym = JS_NewSymbol(ctx, "lvgljs", true);
     JSAtom render_atom = JS_ValueToAtom(ctx, render_sym);
     JSValue render = JS_NewObjectProto(ctx, JS_NULL);
 
