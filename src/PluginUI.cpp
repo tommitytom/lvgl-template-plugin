@@ -7,9 +7,7 @@
 
 #include "DistrhoUI.hpp"
 #include "ResizeHandle.hpp"
-
-// NOTICE we do nothing here but show demo widgets
-#include "demos/lv_demos.h"
+#include "LvglJsEngine.hpp"
 
 START_NAMESPACE_DISTRHO
 
@@ -19,6 +17,7 @@ class LVGLPluginUI : public UI
 {
     float fGain = 0.0f;
     ResizeHandle fResizeHandle;
+    LvglJsEngine jsEngine;
 
     // ----------------------------------------------------------------------------------------------------------------
 
@@ -47,8 +46,21 @@ public:
         if (isResizable())
             fResizeHandle.hide();
 
-        // NOTICE we do nothing here but show demo widgets
-        lv_demo_widgets();
+        // Initialize JS engine and load React UI bundle
+        if (jsEngine.init())
+        {
+            // TODO: For production, embed the JS bundle as bytecode instead
+            // of loading from disk. For now, use an absolute path.
+            const char* bundlePath = "/home/tommitytom/code/thirdparty/lvgl-template-plugin/ui/bundle.js";
+            if (jsEngine.evalModule(bundlePath) != 0)
+                d_stderr("Failed to load %s", bundlePath);
+            else
+                d_stdout("LvglJsEngine: React UI loaded");
+        }
+        else
+        {
+            d_stderr("Failed to initialize LvglJsEngine");
+        }
     }
 
 protected:
@@ -65,6 +77,14 @@ protected:
 
         fGain = value;
         repaint();
+    }
+
+    // ----------------------------------------------------------------------------------------------------------------
+    // Widget Callbacks
+
+    void uiIdle() override
+    {
+        jsEngine.tick();
     }
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LVGLPluginUI)

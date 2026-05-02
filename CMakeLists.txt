@@ -2,7 +2,7 @@
 # Copyright (C) 2021-2024 Filipe Coelho <falktx@falktx.com>
 # SPDX-License-Identifier: ISC
 
-cmake_minimum_required(VERSION 3.7...3.31)
+cmake_minimum_required(VERSION 3.14...3.31)
 
 # setup project
 set(CMAKE_CXX_STANDARD 14)
@@ -12,9 +12,100 @@ project(${NAME})
 # tell LVGL where to find its config file
 set(LV_BUILD_CONF_PATH "${PROJECT_SOURCE_DIR}/src/lv_conf.h" CACHE PATH "")
 
-# include DPF and LVGL
+# include DPF
 add_subdirectory(deps/dpf)
-add_subdirectory(deps/lvgl)
+
+# Use LVGL from lv_binding_js (single source of truth)
+add_subdirectory(deps/lv_binding_js/deps/lvgl)
+
+# --- txiki.js (QuickJS + libuv + curl + ffi runtime) ---
+set(USE_EXTERNAL_FFI ON CACHE BOOL "" FORCE)
+set(BUILD_WITH_MIMALLOC OFF CACHE BOOL "" FORCE)
+add_subdirectory(deps/lv_binding_js/deps/txiki EXCLUDE_FROM_ALL)
+
+# --- lvgl-js-native: the native C++ component bridge ---
+set(LVGL_JS_NATIVE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/lv_binding_js/src/render/native)
+add_library(lvgl-js-native STATIC
+    ${LVGL_JS_NATIVE_DIR}/core/basic/comp.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/style/style.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/style/font/font.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/event/event.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/event/click/click.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/event/normal/normal.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/event/select/select.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/event/value_change/value_change.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/refresh/refresh.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/utils/utils.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/theme/theme.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/dimensions/dimensions.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/animate/animate.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/img/img.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/img/png/png.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/img/png/lodepng.cpp
+    ${LVGL_JS_NATIVE_DIR}/core/img/gif/gif.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/component.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/view/view.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/view/view_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/text/text.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/text/text_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/button/button.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/button/button_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/image/image.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/image/image_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/slider/slider.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/slider/slider_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/switch/switch.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/switch/switch_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/arc/arc.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/arc/arc_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/checkbox/checkbox.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/checkbox/checkbox_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/textarea/textarea.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/textarea/textarea_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/keyboard/keyboard.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/keyboard/keyboard_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/dropdownlist/dropdownlist.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/dropdownlist/dropdownlist_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/progressbar/progressbar.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/progressbar/progressbar_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/roller/roller.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/roller/roller_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/line/line.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/line/line_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/calendar/calendar.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/calendar/calendar_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/chart/chart.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/chart/chart_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/tabview/tabview.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/tabview/tabview_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/gif/gif.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/gif/gif_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/mask/mask.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/mask/mask_wrap.cpp
+    ${LVGL_JS_NATIVE_DIR}/components/window/window.cpp
+    ${LVGL_JS_NATIVE_DIR}/bootstrap/render_bootstrap.cpp
+    # Engine wrapper (replaces lv_binding_js/src/engine/engine.cpp)
+    src/LvglJsEngine.cpp
+)
+
+target_include_directories(lvgl-js-native PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/deps/lv_binding_js/src/render  # for "native/..." includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/deps/lv_binding_js/src/engine  # for "hal/hal.hpp" etc
+    ${CMAKE_CURRENT_SOURCE_DIR}/deps/lv_binding_js/src         # top-level src includes
+)
+target_link_libraries(lvgl-js-native PUBLIC tjs lvgl::lvgl)
+set_target_properties(lvgl-js-native PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    CXX_STANDARD 14
+)
+
+# Ensure all static libs that end up in shared plugin binaries have PIC
+set_target_properties(lvgl PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(tjs PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(qjs PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(uv_a PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(m3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(sqlite3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # create plugin build target
 dpf_add_plugin(${NAME}
@@ -29,9 +120,7 @@ dpf_add_plugin(${NAME}
 target_include_directories(${NAME} PUBLIC src)
 target_include_directories(${NAME} PUBLIC deps/dpf-widgets/generic)
 target_link_libraries(${NAME} PUBLIC lvgl::lvgl $<$<BOOL:${WIN32}>:winmm>)
-
-# FIXME LVGL has no way to configure this, report upstream?
-set_target_properties(lvgl PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(${NAME} PUBLIC lvgl-js-native)
 
 # NOTICE you probably do not want this on your final plugin
 target_link_libraries(${NAME} PUBLIC lvgl::demos)
