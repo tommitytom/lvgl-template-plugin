@@ -7,4 +7,3 @@
 [submodule "deps/lv_binding_js"]
 	path = deps/lv_binding_js
 	url = git@github.com:tommitytom/lv_binding_js.git
-	branch = msvc
