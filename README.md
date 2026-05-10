@@ -72,7 +72,7 @@ git clone --recursive https://github.com/tommitytom/lvgl-template-plugin.git
 cd lvgl-template-plugin
 ```
 
-### Build the plugin
+### Build the plugin (Linux / macOS)
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -80,6 +80,28 @@ cmake --build build -j$(nproc)
 ```
 
 This produces plugins in `build/bin/` for all supported formats: JACK (standalone), CLAP, VST2, VST3, LV2.
+
+### Build the plugin (Windows / MSVC)
+
+Requires:
+
+- Visual Studio 2022 with the *Desktop development with C++* workload
+- [vcpkg](https://vcpkg.io) with `libffi:x64-windows-static` installed (txiki.js needs it for FFI):
+
+  ```powershell
+  vcpkg install libffi:x64-windows-static
+  ```
+
+Configure and build, pointing CMake at the vcpkg toolchain (replace `C:\vcpkg` with your install path):
+
+```powershell
+cmake -G "Visual Studio 17 2022" -A x64 -S . -B build `
+      -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
+      -DVCPKG_TARGET_TRIPLET=x64-windows-static
+cmake --build build --config Release
+```
+
+Output goes to `build/bin/Release/` (`.vst3`, `.clap`, `.lv2/`, JACK `.exe`). All static deps link against the `/MT` runtime to match txiki.js, which is why the static vcpkg triplet is required.
 
 ### Build the JS bundle
 
@@ -91,6 +113,8 @@ node ui/build.js      # bundle ui/PluginUI.tsx → ui/bundle.js
 ```
 
 Edit `ui/PluginUI.tsx`, re-run `node ui/build.js`, and relaunch the plugin — no C++ recompilation needed.
+
+By default the plugin loads `bundle.js` from the source-tree path baked in at CMake-configure time. To load a bundle from a different location at runtime, set the `LVGL_DEMO_BUNDLE` environment variable to its absolute path before launching the host.
 
 ## Project structure
 

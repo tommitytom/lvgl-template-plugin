@@ -9,6 +9,8 @@
 #include "ResizeHandle.hpp"
 #include "LvglJsEngine.hpp"
 
+#include <cstdlib>
+
 START_NAMESPACE_DISTRHO
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -50,8 +52,12 @@ public:
         if (jsEngine.init())
         {
             // TODO: For production, embed the JS bundle as bytecode instead
-            // of loading from disk. For now, use an absolute path.
-            const char* bundlePath = "/home/tommitytom/code/thirdparty/lvgl-template-plugin/ui/bundle.js";
+            // of loading from disk. For now, allow the path to be overridden
+            // via env var (LVGL_DEMO_BUNDLE) and fall back to the build-time
+            // source-directory path baked in by CMake.
+            const char* bundlePath = std::getenv("LVGL_DEMO_BUNDLE");
+            if (bundlePath == nullptr || *bundlePath == '\0')
+                bundlePath = DEFAULT_BUNDLE_PATH;
             if (jsEngine.evalModule(bundlePath) != 0)
                 d_stderr("Failed to load %s", bundlePath);
             else
